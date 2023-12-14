@@ -29,5 +29,5 @@ Captchas on this particular website are quite annoying and difficult to deal wit
 
 ## Results
 
-Best so far: 413 WPM without getting banned
-![Leaderboard](https://github.com/jenca-adam/typeracer-bot/blob/main/leaderboard.png?raw=true "413 WPM")
+Best so far: 433 WPM without getting banned
+![Leaderboard](https://github.com/jenca-adam/typeracer-bot/blob/main/leaderboard.png?raw=true "433 WPM")

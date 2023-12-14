@@ -3,3 +3,4 @@ Pillow~=10.0.1
 pytesseract~=0.3.10
 opencv-python~=4.8.1.78
 wget~=3.2
+getkey~=0.6.5
