@@ -128,7 +128,7 @@ if __name__=="__main__":
             if a>=0:
                 return a
             return 0
-        t = x.find_element(By.XPATH,'/html/body/div[2]/div/div[2]/div/div[1]/div[1]/table/tbody/tr[2]/td[2]/div/div[1]/div/table/tbody/tr[2]/td[3]/table/tbody/tr[2]/td/table/tbody/tr[1]/td/table/tbody/tr[1]').text
+        t = x.find_element(By.XPATH,"/html/body/div[2]/div/div[2]/div/div[1]/div[1]/table/tbody/tr[2]/td[2]/div/div[2]/div/table/tbody/tr[2]/td[3]/table/tbody/tr[2]/td/table/tbody/tr[1]/td/table/tbody/tr[1]/td").text
         total_sleep_time=60*(1/wpm)
         sleep_time_per_char = total_sleep_time*len(t.split())/len(t)
         for i in t.split():
