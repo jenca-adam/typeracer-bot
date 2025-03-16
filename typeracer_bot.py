@@ -23,6 +23,9 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.alert import Alert
 from selenium.webdriver.firefox.options import Options as FFoxOptions
 from selenium.webdriver.chrome.options import Options as ChromeOptions
+from selenium.webdriver.common.action_chains import ActionChains
+import string
+tesseract_alphabet = string.ascii_letters+string.digits+" \\\"'"
 black_lo=np.array([0,0,0])
 black_hi=np.array([255,255,70])
 def create_driver(headless=False):
@@ -58,7 +61,9 @@ def ocr_preprocess(img):
     SE   = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3,3))
     mask = cv2.dilate(mask, SE, iterations=1)
     img[mask>0]=dominant
-    return img
+    img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    _,img_bw = cv2.threshold(img_gray, 0, 255, cv2.THRESH_BINARY|cv2.THRESH_OTSU)
+    return img_bw
 if __name__=="__main__":
     always=False
     wpm=float(input("Target WPM:"))
@@ -80,9 +85,10 @@ if __name__=="__main__":
         headless=False
     print("\nStarting the Web Driver")
     x=create_driver(headless)
+    chains=ActionChains(x)
     x.get('https://play.typeracer.com')
     time.sleep(3.1)
-    x.find_element(By.XPATH,'//*[contains(text(),\'AGREE\')]').click()
+    x.find_element(By.XPATH,'//*[contains(text(),\'Consent\')]').click()
 
     if log_in:
         print("Logging in")
@@ -110,16 +116,19 @@ if __name__=="__main__":
         dq=False
         time.sleep(1)
         inp=x.find_element("tag name","input")
+        print(inp)
         seen_countdown=False
+
         while True:
             try:
-                a=x.find_element(By.XPATH,'/html/body/div[5]/div/table/tbody/tr/td/table/tbody/tr/td[3]/div/span')
+                a=x.find_element("css selector",'.popupContent .timeDisplay > .time')
+                print(a.text, end="\r")
                 if a.text==":00":
                     break
                 if a.text.startswith(":0"):
-                    print("\rCountdown:",a.text,end="")
                     seen_countdown=True
             except:
+                raise
                 if seen_countdown:
                     break
         print("\ntyping")
@@ -128,7 +137,7 @@ if __name__=="__main__":
             if a>=0:
                 return a
             return 0
-        t = x.find_element(By.XPATH,"/html/body/div[2]/div/div[2]/div/div[1]/div[1]/table/tbody/tr[2]/td[2]/div/div[2]/div/table/tbody/tr[2]/td[3]/table/tbody/tr[2]/td/table/tbody/tr[1]/td/table/tbody/tr[1]/td").text
+        t = x.find_element('css selector', '.inputPanel').text
         total_sleep_time=60*(1/wpm)
         sleep_time_per_char = total_sleep_time*len(t.split())/len(t)
         for i in t.split():
@@ -188,13 +197,16 @@ if __name__=="__main__":
                         captcha_temp_file.file.write(image)
                         cvim = cv2.imread(captcha_temp_file.name)
                         cvim = ocr_preprocess(cvim)
-                        solution=pytesseract.image_to_string(cvim)
+                        solution=pytesseract.image_to_string(cvim, config="-c tessedit_char_whitelist=\""+tesseract_alphabet+'"')
                         print("Solution: ",repr(solution))
 
                         x.find_element("css selector",".challengeTextArea").send_keys(solution)
-                        x.find_element("css selector",".gwt-Button").click()
+                        time.sleep(0.1)
+                        button=x.find_element("css selector", ".gwt-Button")
+                        x.execute_script("arguments[0].click()", button)
                         time.sleep(1)
-                        q=x.find_element("css selector","div.DialogBox").text
+                        q=x.find_element("css selector","div.dialogContent").text
+                        print("E",q)
                         if "Sorry" not in q:
                             print("Captcha passed!")
                             break
@@ -203,14 +215,18 @@ if __name__=="__main__":
                             break
                         print("Captcha failed, retrying.")
                     x.find_element(By.XPATH,'//div[@title="close this popup"]').click()
-        except:pass
+        except:
+            raise
         print("\nRace finished.")
         try:
             print("real WPM =>", x.find_element("css selector","div.rankPanelWpm.rankPanelWpm-self").text.split()[0],"target=>",wpm)
         except:
             print("real WPM => ???, target=>",wpm)
         if not dq:
-            print("place:",x.find_element(By.XPATH,'/html/body/div[2]/div/div[2]/div/div[1]/div[1]/table/tbody/tr[2]/td[2]/div/div[1]/div/table/tbody/tr[2]/td[3]/table/tbody/tr[1]/td/table/tbody/tr[2]/td/div/div/div/table[1]/tbody/tr/td[2]/div/div[1]').text[0])
+            try:
+                print("place:",x.find_element(By.XPATH,'/html/body/div[2]/div/div[2]/div/div[1]/div[1]/table/tbody/tr[2]/td[2]/div/div[1]/div/table/tbody/tr[2]/td[3]/table/tbody/tr[1]/td/table/tbody/tr[2]/td/div/div/div/table[1]/tbody/tr/td[2]/div/div[1]').text[0])           
+            except:
+                print("place: ??")
         else:
             print("place: DQ")
         if not always:
@@ -220,7 +236,8 @@ if __name__=="__main__":
             always = q=="a"
         print("racing again")
         try:
-            x.find_element("css selector","a.raceAgainLink").click()
+            el=x.find_element("css selector","a.raceAgainLink")
+            x.execute_script("arguments[0].click()",el)
         except:
-            pass
+            raise
     x.close()
